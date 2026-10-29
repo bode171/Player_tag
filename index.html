@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hockey Tags">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#15304a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Eishockey Tagging</title>
+<style>
+:root{--bg:#eef3f7;--surface:#ffffff;--text:#101c28;--muted:#586878;--line:#cfd9e2;--ok:#1b8a4b;--bad:#cf3b3b;--shot:#2563c9;--goal:#e6b400;--goalt:#1c1500;--free:#c2570c;--stick:#7448c9;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b141d;--surface:#15222f;--text:#e9f1f8;--muted:#93a4b4;--line:#27394a;--ok:#25a85f;--bad:#e5504f;--shot:#3b82f0;--goal:#f2c21b;--free:#e0731f;--stick:#8d63e6;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b141d;--surface:#15222f;--text:#e9f1f8;--muted:#93a4b4;--line:#27394a;--ok:#25a85f;--bad:#e5504f;--shot:#3b82f0;--goal:#f2c21b;--free:#e0731f;--stick:#8d63e6;color-scheme:dark}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;display:flex;flex-direction:column;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+header{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.pick{background:var(--shot);color:#fff;font-weight:700;font-size:14px;padding:9px 12px;border-radius:10px;white-space:nowrap}
+#last{flex:1;font-size:14px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#undo{background:var(--surface);border:1px solid var(--line);font-size:14px;font-weight:600;padding:9px 12px;border-radius:10px}
+#tag{flex:1;display:flex;flex-direction:column;min-height:0}
+.left{flex:0 0 36%;display:flex;flex-direction:column;min-height:0;background:#000}
+.vwrap{position:relative;flex:1;min-height:0}
+video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#dbe6ef;font-size:15px;padding:16px}
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--surface)}
+.bar button{background:var(--bg);border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:600;padding:7px 10px;min-width:44px}
+#time{margin-left:auto;font-size:12px;white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{padding:5px 6px}.bar button{padding:7px 8px;min-width:0}.bar .sp{padding:7px 6px;font-size:13px}.bar .sp.on{background:var(--shot);color:#fff;border-color:var(--shot)}
+#tl{flex:0 0 auto;position:relative;height:20px;background:var(--surface);border-top:1px solid var(--line)}
+#prog{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--line);opacity:.7}
+.tick{position:absolute;top:3px;bottom:3px;width:3px;border-radius:2px;pointer-events:none}
+.right{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:8px;padding:8px;min-height:0}
+.act{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:14px;color:#fff;font-weight:700;font-size:16px;line-height:1.15;text-align:center;padding:4px;touch-action:none;transition:transform .08s,filter .15s;min-height:0}
+.act small{font-size:12px;font-weight:600;opacity:.9}
+.act .ic{font-size:20px}
+.act .n{position:absolute;top:6px;right:9px;font-size:15px;font-variant-numeric:tabular-nums}
+.act.full{grid-column:1 / -1}
+.act.goal{color:var(--goalt)}
+.act.hit{transform:scale(.95);filter:brightness(1.25)}
+.act.armed{background:var(--goal)!important;color:var(--goalt)}
+nav{flex:0 0 auto;display:flex;border-top:1px solid var(--line);background:var(--surface)}
+nav button{flex:1;background:none;padding:13px 0;font-size:15px;font-weight:600;color:var(--muted)}
+nav button.on{color:var(--text);box-shadow:inset 0 3px 0 var(--shot)}
+#stats{display:none;flex:1;flex-direction:column;gap:8px;padding:10px;min-height:0}
+body.s #tag{display:none}
+body.s #stats{display:flex}
+.row{flex:1;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:15px;min-height:0}
+.dot{width:12px;height:12px;border-radius:50%}
+.row b{margin-left:auto;font-variant-numeric:tabular-nums;font-size:17px}
+.sum{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.sum div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 6px;text-align:center;font-size:12px;color:var(--muted)}
+.sum strong{display:block;font-size:20px;color:var(--text);margin-bottom:2px}
+.tools{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tools button{padding:12px;border-radius:10px;font-weight:700;font-size:15px;background:var(--shot);color:#fff}
+.tools button.del{background:var(--surface);color:var(--bad);border:1px solid var(--line)}
+#msg{flex:0 0 auto;min-height:16px;text-align:center;font-size:12px;color:var(--muted)}
+#dlg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:20;padding:16px}
+#dlg.on{display:flex}
+#dlg .box{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+#dlg label{font-size:14px;font-weight:600}
+#dlg input{font-size:16px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);-webkit-user-select:text;user-select:text}
+#dlg .btns{display:flex;gap:8px}
+#dlg .btns button{flex:1;padding:11px;border-radius:10px;font-weight:700;font-size:15px;background:var(--shot);color:#fff}
+#dlg .btns button.no{background:var(--bg);color:var(--text);border:1px solid var(--line)}
+@media (orientation:landscape){header{padding:4px 8px}.pick,#undo{padding:6px 10px;font-size:13px}nav button{padding:7px 0;font-size:14px}#tag{flex-direction:row}.left{flex:0 0 62%}.right{gap:6px;padding:6px}.act{font-size:13px;border-radius:10px;gap:0}.act .ic{font-size:15px}.act small{display:none}.act .n{top:3px;right:6px;font-size:12px}body.s #stats{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto 1fr;padding:6px 8px;gap:6px}#rows{grid-row:1 / 4}.row{font-size:13px}}
+</style>
+</head>
+<body>
+<header>
+  <label class="pick" for="file">Video wählen</label>
+  <input id="file" type="file" accept="video/*" hidden>
+  <span id="last">Noch nichts getaggt</span>
+  <button id="undo">Zurück</button>
+</header>
+
+<main id="tag">
+  <section class="left">
+    <div class="vwrap">
+      <video id="v" playsinline></video>
+      <label class="empty" id="empty" for="file">Tippe auf „Video wählen“ und nimm einen Clip aus deinen Fotos.</label>
+    </div>
+    <div class="bar">
+      <button id="b-back">−5s</button>
+      <button id="b-play">Play</button>
+      <button id="b-fwd">+5s</button>
+      <button class="sp" data-s="0.5">0,5x</button>
+      <button class="sp on" data-s="1">1x</button>
+      <button class="sp" data-s="2">2x</button>
+      <span id="time">0:00</span>
+    </div>
+    <div id="tl"><div id="prog"></div></div>
+  </section>
+  <section class="right" id="grid"></section>
+</main>
+
+<section id="stats">
+  <div id="rows" style="flex:1;display:flex;flex-direction:column;gap:6px;min-height:0"></div>
+  <div class="sum">
+    <div><strong id="s1">–</strong>Passquote</div>
+    <div><strong id="s2">0</strong>Schüsse aufs Tor</div>
+    <div><strong id="s3">–</strong>Torquote</div>
+  </div>
+  <div class="tools">
+    <button id="share">Als Text senden</button>
+    <button id="reset" class="del">Alles löschen</button>
+  </div>
+  <div id="msg"></div>
+</section>
+
+<div id="dlg"><div class="box"><label for="ttl">Überschrift für den Text</label><input id="ttl" type="text" maxlength="80" placeholder="z. B. Training 29.10."><div class="btns"><button class="no" id="d-no">Abbrechen</button><button id="d-ok">Senden</button></div></div></div>
+
+<nav>
+  <button id="t-tag" class="on">Taggen</button>
+  <button id="t-stats">Auswertung</button>
+</nav>
+
+<script>
+(function(){
+var A=[
+ {id:"pass_ok",label:"Pass angekommen",ic:"✓",c:"--ok"},
+ {id:"pass_miss",label:"Pass nicht angekommen",ic:"✕",c:"--bad"},
+ {id:"shot",label:"Schuss aufs Tor",sub:"Wischen nach rechts = Tor",ic:"◎",c:"--shot"},
+ {id:"goal",label:"Tor",ic:"★",c:"--goal",cls:"goal"},
+ {id:"stick",label:"Stick on Puck",ic:"✦",c:"--stick"},
+ {id:"free",label:"Freilaufen anspielbar",ic:"➜",c:"--free"},
+ {id:"won",label:"Puck erobert",ic:"▲",c:"--ok",cls:"full"}
+];
+var by={};A.forEach(function(a){by[a.id]=a});
+var ev=[];
+try{ev=JSON.parse(localStorage.getItem("eh_events")||"[]")}catch(e){ev=[]}
+var $=function(i){return document.getElementById(i)};
+var v=$("v"),grid=$("grid"),tl=$("tl");
+function save(){try{localStorage.setItem("eh_events",JSON.stringify(ev))}catch(e){}}
+function fmt(t){t=Math.max(0,Math.floor(t||0));return Math.floor(t/60)+":"+("0"+(t%60)).slice(-2)}
+function count(id){return ev.filter(function(e){return e.id===id}).length}
+
+A.forEach(function(a){
+  var b=document.createElement("button");
+  b.className="act "+(a.cls||"");b.id="a-"+a.id;
+  b.style.background="var("+a.c+")";
+  b.innerHTML='<span class="n" id="n-'+a.id+'">0</span><span class="ic">'+a.ic+'</span><span class="lb">'+a.label+'</span>'+(a.sub?'<small>'+a.sub+'</small>':'');
+  grid.appendChild(b);
+  if(a.id==="shot"){swipe(b)}else{b.addEventListener("click",function(){add(a.id,b)})}
+});
+
+function swipe(b){
+  var x0=null,armed=false,lb=b.querySelector(".lb");
+  function arm(on){if(on===armed)return;armed=on;b.classList.toggle("armed",on);lb.textContent=on?"Tor!":"Schuss aufs Tor"}
+  b.addEventListener("pointerdown",function(e){x0=e.clientX;try{b.setPointerCapture(e.pointerId)}catch(_){}});
+  b.addEventListener("pointermove",function(e){if(x0===null)return;arm(e.clientX-x0>50)});
+  b.addEventListener("pointerup",function(e){
+    if(x0===null)return;var dx=e.clientX-x0;x0=null;
+    if(armed){arm(false);add("goal",b)}
+    else if(Math.abs(dx)<25){add("shot",b)}
+  });
+  b.addEventListener("pointercancel",function(){x0=null;arm(false)});
+}
+
+function add(id,btn){
+  ev.push({id:id,t:v.currentTime||0,ts:Date.now()});save();
+  if(btn){btn.classList.add("hit");setTimeout(function(){btn.classList.remove("hit")},140)}
+  render();
+}
+function render(){
+  A.forEach(function(a){$("n-"+a.id).textContent=count(a.id)});
+  var l=ev[ev.length-1];
+  $("last").textContent=l?("Zuletzt: "+by[l.id].label+" · "+fmt(l.t)):"Noch nichts getaggt";
+  tl.querySelectorAll(".tick").forEach(function(t){t.remove()});
+  var d=v.duration;
+  if(d&&isFinite(d)){ev.forEach(function(e){
+    var k=document.createElement("div");k.className="tick";
+    k.style.left=Math.min(99.5,e.t/d*100)+"%";k.style.background="var("+by[e.id].c+")";tl.appendChild(k)})}
+}
+
+$("undo").addEventListener("click",function(){if(ev.length){ev.pop();save();render()}});
+
+$("file").addEventListener("change",function(e){
+  var f=e.target.files&&e.target.files[0];if(!f)return;
+  if(v.dataset.u){URL.revokeObjectURL(v.dataset.u)}
+  var u=URL.createObjectURL(f);v.dataset.u=u;v.src=u;v.load();
+  $("empty").style.display="none";
+});
+v.addEventListener("loadedmetadata",function(){v.playbackRate=rate;render()});
+v.addEventListener("timeupdate",function(){
+  $("time").textContent=fmt(v.currentTime)+" / "+fmt(v.duration);
+  if(v.duration)$("prog").style.width=(v.currentTime/v.duration*100)+"%";
+});
+v.addEventListener("play",function(){$("b-play").textContent="Pause"});
+v.addEventListener("pause",function(){$("b-play").textContent="Play"});
+function toggle(){if(v.paused||v.ended){var p=v.play();if(p&&p.catch)p.catch(function(){})}else{v.pause()}}
+$("b-play").addEventListener("click",toggle);
+v.addEventListener("click",toggle);
+$("b-back").addEventListener("click",function(){v.currentTime=Math.max(0,v.currentTime-5)});
+$("b-fwd").addEventListener("click",function(){v.currentTime=Math.min(v.duration||1e9,v.currentTime+5)});
+var rate=1;
+document.querySelectorAll(".sp").forEach(function(b){b.addEventListener("click",function(){
+  rate=parseFloat(b.dataset.s);v.playbackRate=rate;
+  document.querySelectorAll(".sp").forEach(function(o){o.classList.toggle("on",o===b)});
+})});
+tl.addEventListener("pointerup",function(e){
+  if(!v.duration)return;var r=tl.getBoundingClientRect();
+  v.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*v.duration;
+});
+
+/* Auswertung */
+function stats(){
+  var rows=$("rows");rows.innerHTML="";
+  A.forEach(function(a){
+    var r=document.createElement("div");r.className="row";
+    r.innerHTML='<span class="dot" style="background:var('+a.c+')"></span>'+a.label+'<b>'+count(a.id)+'</b>';
+    rows.appendChild(r);
+  });
+  var ok=count("pass_ok"),miss=count("pass_miss"),sh=count("shot"),g=count("goal");
+  $("s1").textContent=ok+miss?Math.round(ok/(ok+miss)*100)+" %":"–";
+  $("s2").textContent=sh+g;
+  $("s3").textContent=sh+g?Math.round(g/(sh+g)*100)+" %":"–";
+}
+function tab(s){
+  document.body.classList.toggle("s",s);
+  $("t-tag").classList.toggle("on",!s);$("t-stats").classList.toggle("on",s);
+  if(s){v.pause();stats()}
+}
+$("t-tag").addEventListener("click",function(){tab(false)});
+$("t-stats").addEventListener("click",function(){tab(true)});
+
+function csv(){
+  var o="Zeit;Aktion\n";
+  ev.forEach(function(e){o+=fmt(e.t)+";"+by[e.id].label+"\n"});
+  return o;
+}
+function say(t){$("msg").textContent=t;setTimeout(function(){$("msg").textContent=""},3500)}
+function send(title){
+  var t=(title?title+"\n\n":"")+csv();
+  if(navigator.share){navigator.share({text:t}).catch(function(){})}
+  else if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){say("In die Zwischenablage kopiert.")},function(){say("Kopieren nicht möglich.")})}
+  else say("Senden wird hier nicht unterstützt.");
+}
+$("share").addEventListener("click",function(){
+  if(!ev.length){say("Noch nichts zum Senden.");return}
+  $("dlg").classList.add("on");$("ttl").focus();
+});
+$("d-no").addEventListener("click",function(){$("dlg").classList.remove("on")});
+$("d-ok").addEventListener("click",function(){var t=$("ttl").value.trim();$("dlg").classList.remove("on");send(t)});
+var armedDel=false;
+$("reset").addEventListener("click",function(){
+  var b=$("reset");
+  if(!armedDel){armedDel=true;b.textContent="Nochmal tippen zum Löschen";setTimeout(function(){armedDel=false;b.textContent="Alles löschen"},3000);return}
+  ev=[];save();armedDel=false;b.textContent="Alles löschen";render();stats();
+});
+render();
+})();
+</script>
+</body>
+</html>
